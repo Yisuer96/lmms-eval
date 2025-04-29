@@ -260,7 +260,9 @@ class Task(abc.ABC):
                 Reuse download with fresh dataset.
             - `datasets.DownloadMode.FORCE_REDOWNLOAD`
                 Fresh download and fresh dataset.
-        """
+                """
+        hf_endpoint = os.environ.get("HF_ENDPOINT", "https://hf-mirror.com")  
+        os.environ["HF_ENDPOINT"] = hf_endpoint
         self.dataset = datasets.load_dataset(
             path=self.DATASET_PATH,
             name=self.DATASET_NAME,
@@ -711,6 +713,8 @@ class ConfigurableTask(Task):
 
         if self.config.dataset_path is not None:
             self.DATASET_PATH = self.config.dataset_path
+            # if self.DATASET_PATH == 'gsm8k':
+            #     self.DATASET_PATH = 'openai/gsm8k'
 
         if self.config.dataset_name is not None:
             self.DATASET_NAME = self.config.dataset_name
@@ -867,6 +871,9 @@ class ConfigurableTask(Task):
     def download(self, dataset_kwargs=None) -> None:
         # If the dataset is a video dataset,
         # Recursively search whether their is a zip and unzip it to the huggingface home
+        # print(dataset_kwargs)
+        hf_endpoint = os.environ.get("HF_ENDPOINT", "https://hf-mirror.com")  
+        os.environ["HF_ENDPOINT"] = hf_endpoint
         download_config = DownloadConfig()
         download_config.max_retries = dataset_kwargs.get("max_retries", 10) if dataset_kwargs is not None else 10
         download_config.num_proc = dataset_kwargs.get("num_proc", 8) if dataset_kwargs is not None else 8
@@ -1035,12 +1042,15 @@ class ConfigurableTask(Task):
 
             if "create_link" in dataset_kwargs:
                 dataset_kwargs.pop("create_link")
-
         if dataset_kwargs is not None and "load_from_disk" in dataset_kwargs and dataset_kwargs["load_from_disk"]:
             # using local task in offline environment, need to process the online dataset into local format via
             # `ds = load_datasets("lmms-lab/MMMU")`
             self.dataset = datasets.load_from_disk(dataset_path=self.DATASET_PATH)
         else:
+            print(download_config)
+            if download_config.storage_options['hf'] is not None:
+                download_config.storage_options['hf']['endpoint'] = 'https://hf-mirror.com'
+            print(os.environ.get("HF_ENDPOINT"))
             self.dataset = datasets.load_dataset(
                 path=self.DATASET_PATH,
                 name=self.DATASET_NAME,

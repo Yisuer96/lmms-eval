@@ -46,3 +46,5 @@ scripts/
 .env
 outputs/
 span.log
+<Path to HF cache>
+MovieChat/
